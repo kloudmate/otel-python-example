@@ -1,237 +1,106 @@
-# OpenTelemetry Python Example
+# KloudMate OpenTelemetry Integration Guide (Python)
 
-A simple Hello World Flask application demonstrating OpenTelemetry auto-instrumentation with custom spans.
+This repository provides a clear, step-by-step demonstration of how to integrate your Python (Flask) applications with the KloudMate observability platform.
 
-## Features
+We demonstrate two primary approaches:
+1. **Zero-Code Auto-Instrumentation**: Instantly gain visibility into your HTTP routes, database calls, and external requests without writing a single line of OpenTelemetry code.
+2. **Manual Instrumentation**: Enrich your auto-generated traces with deep, business-specific custom spans, attributes, and span events (demonstrated via an E-Commerce checkout scenario called _`K-Commerce`_).
 
-- 🚀 Flask REST API with multiple endpoints
-- 📊 OpenTelemetry auto-instrumentation for Flask
-- 🎯 Custom spans for detailed tracing
-- 🔧 Worker function demonstrating nested spans
-- 🔐 Authorization header support via `OTEL_EXPORTER_OTLP_HEADERS`
-- ⚙️ Configurable OTLP collector endpoint
+---
 
 ## Prerequisites
 
-- Python 3.8 or higher
-- pip (Python package manager)
+- **Python**: 3.8 or higher.
+- **KloudMate Account**: You will need your Workspace API Key to send telemetry data to your dashboard. (You can find this on your KloudMate dashboard under Settings -> Workspaces -> Click on **API Keys** on your desired Workspace)
 
-## Installation
+---
 
-1. Clone the repository:
+## Installation & Setup
+
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Configure KloudMate Telemetry Exporter:**
+   Copy the example environment file and add your KloudMate API Key.
+   ```bash
+   cp .env.example .env
+   ```
+   Open `.env` and configure your API key and service name you want:
+   ```env
+   # .env file
+   OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.kloudmate.com:4318
+   OTEL_EXPORTER_OTLP_HEADERS=Authorization=YOUR_KLOUDMATE_API_KEY
+   OTEL_SERVICE_NAME=otel-python-example
+   ```
+
+---
+
+## Approach 1: Zero-Code Auto-Instrumentation
+
+The fastest way to get started with KloudMate. By running your existing application through the `opentelemetry-instrument` wrapper, OpenTelemetry automatically injects itself into standard Python libraries (like Flask, Requests, SQLAlchemy, etc.) and generates traces.
+
+**Target File**: `app_auto.py` (Notice this file imports *no* OpenTelemetry libraries).
+
+### Running the Demo
+Start the auto-instrumented application:
 ```bash
-git clone https://github.com/kloudmate/otel-python-example.git
-cd otel-python-example
+./run_auto.sh
 ```
 
-2. Create a virtual environment (recommended):
+### Try these endpoints:
+- `curl http://localhost:5000/api/users`: Simulates a standard database delay. Auto-instrumentation will capture the exact duration of the request automatically.
+- `curl http://localhost:5000/api/computation`: Simulates heavy CPU load.
+
+*Outcome*: Check your KloudMate dashboard to see beautiful traces tracking the entry and exit of your HTTP requests instantly.
+
+---
+
+## Approach 2: Manual Instrumentation (Advanced)
+
+While auto-instrumentation is powerful, distributed architectures often require deeper insights into custom business logic. `app_manual.py` demonstrates how to layer manual tracing over auto-instrumentation.
+
+**Target File**: `app_manual.py`
+
+### The K-Commerce Simulation
+The `/checkout` endpoint in this application simulates a complex K-Commerce checkout pipeline:
+- `inventory.check`: A custom span tracking inventory, which may throw a simulated "Out of Stock" exception.
+- `payment.process`: Adds rich custom attributes (`payment.amount`, `payment.gateway`) and milestones via **Span Events** (`payment.gateway.initiated`).
+- `logistics.schedule`: Generates a mock tracking number appended to the trace.
+
+By leveraging `span.set_attribute()`, `span.add_event()`, and `span.record_exception()`, you gain immense filtering textuality inside the KloudMate dashboard.
+
+### Running the Demo
+Start the manually instrumented application:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+./run_manual.sh
 ```
 
-3. Install dependencies:
+### Try the Checkout Pipeline:
+Trigger the stochastic K-Commerce scenario (which has built-in simulated failure rates to demonstrate OpenTelemetry error reporting):
 ```bash
-pip install -r requirements.txt
+curl http://localhost:5000/checkout
 ```
 
-4. Configure environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+*Outcome*: In KloudMate, you will see a detailed, nested trace starting from the HTTP POST route, delving down into specific operations like `inventory.check` and `payment.process`, complete with their associated metadata and internal event timelines.
 
-## Configuration
+---
 
-The application uses environment variables for OpenTelemetry configuration. Key variables:
+## Viewing Your Data in KloudMate
 
-- `OTEL_EXPORTER_OTLP_ENDPOINT`: The OTLP endpoint (default: `http://localhost:4318`)
-- `OTEL_EXPORTER_OTLP_HEADERS`: Headers including Authorization (e.g., `Authorization=Bearer your-token`)
-- `OTEL_SERVICE_NAME`: Service name for telemetry (default: `otel-python-example`)
-- `OTEL_RESOURCE_ATTRIBUTES`: Additional resource attributes
-- `OTEL_EXPORTER_OTLP_PROTOCOL`: Protocol to use (`http/protobuf` or `grpc`)
+1. Log in to your [KloudMate Dashboard](https://app.kloudmate.com).
+2. Navigate to the **APM / Services** Module section.
+3. Select the service name `otel-python-example` (or whatever you set `OTEL_SERVICE_NAME` to in your `.env` file).
+4. Alternatively you can view individual traces emitted by your application, by clicking on **Traces** Module.
+5. Click into individual traces to view request latency, custom attributes (e.g., `user.id`, `payment.gateway`), and application errors directly mapped to the source code exceptions.
 
-### Example Configuration
+---
 
-```bash
-# .env file
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer your-token-here
-OTEL_SERVICE_NAME=otel-python-example
-OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production,service.version=1.0.0
-OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-```
+<div align="center">
 
-## Running the Application
+**Made with 🧡 by the KloudMate Team**
 
-### With Auto-Instrumentation (Recommended)
+[Website](https://kloudmate.com) • [KloudMate Agents](https://github.com/kloudmate/km-agent) • [Support](mailto:support@kloudmate.com)
 
-Use the provided script:
-```bash
-./run.sh
-```
-
-Or manually:
-```bash
-opentelemetry-instrument \
-    --traces_exporter otlp \
-    --metrics_exporter none \
-    --logs_exporter none \
-    python app.py
-```
-
-### Without Auto-Instrumentation
-
-```bash
-python app.py
-```
-
-Note: Without auto-instrumentation, you'll only see custom spans, not automatic Flask instrumentation.
-
-## API Endpoints
-
-### GET /
-Simple hello world endpoint.
-
-**Response:**
-```json
-{
-  "message": "Hello, World!",
-  "status": "success"
-}
-```
-
-### GET /health
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "service": "otel-python-example"
-}
-```
-
-### GET /process
-Endpoint demonstrating custom spans and worker functionality.
-Simulates data processing with nested spans.
-
-**Response:**
-```json
-{
-  "status": "completed",
-  "processed_items": 5,
-  "original_items": 5
-}
-```
-
-## Custom Spans
-
-The application demonstrates custom span creation in several ways:
-
-1. **Request Processing Span** (`/process` endpoint):
-   - Tracks the entire request processing
-   - Adds attributes like request type and user operation
-
-2. **Worker Span** (`do_work` function):
-   - Demonstrates nested span creation
-   - Tracks data fetching and processing steps
-
-3. **Data Fetching Span** (`fetch_data` function):
-   - Simulates database/API calls
-   - Records data source and count
-
-4. **Data Processing Span** (`process_data` function):
-   - Simulates data transformation
-   - Records processing type
-
-## Testing
-
-Test the endpoints using curl:
-
-```bash
-# Hello World
-curl http://localhost:5000/
-
-# Health Check
-curl http://localhost:5000/health
-
-# Process (with custom spans)
-curl http://localhost:5000/process
-```
-
-## Viewing Traces
-
-To view the traces, you need an OpenTelemetry collector and a backend like:
-- Jaeger
-- Zipkin
-- Grafana Tempo
-- Honeycomb
-- Datadog
-- New Relic
-
-### Example: Using a Local OTLP Collector
-
-1. Set up your preferred OTLP-compatible collector (e.g., Jaeger, OTEL Collector)
-   - For Jaeger, follow the [Jaeger Getting Started](https://www.jaegertracing.io/docs/latest/getting-started/) guide
-   - Ensure it's configured to accept OTLP data on port 4318 (HTTP) or 4317 (gRPC)
-
-2. Configure the application:
-```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-export OTEL_SERVICE_NAME=otel-python-example
-export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer your-token"
-```
-
-3. Run the application and make some requests
-
-4. View traces in your collector's UI (e.g., Jaeger UI at http://localhost:16686)
-
-## Architecture
-
-```
-┌─────────────────────┐
-│   Flask App         │
-│   (app.py)          │
-│                     │
-│  ┌──────────────┐   │
-│  │ REST API     │   │
-│  │ Endpoints    │   │
-│  └──────────────┘   │
-│                     │
-│  ┌──────────────┐   │
-│  │ Worker       │   │
-│  │ Functions    │   │
-│  └──────────────┘   │
-└─────────────────────┘
-         │
-         │ OpenTelemetry
-         │ Auto-Instrumentation
-         │ + Custom Spans
-         ▼
-┌─────────────────────┐
-│ OTLP Exporter       │
-│ (with Auth Header)  │
-└─────────────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│ OTLP Collector      │
-│ (Jaeger/Tempo/etc)  │
-└─────────────────────┘
-```
-
-## Security Considerations
-
-- **Flask Debug Mode**: By default, debug mode is disabled for security. Only enable it in development by setting `FLASK_DEBUG=true`
-- **Authorization Headers**: Use strong tokens for the `OTEL_EXPORTER_OTLP_HEADERS` configuration
-- **Production Deployment**: Use a production WSGI server like Gunicorn or uWSGI instead of Flask's built-in development server
-- **Dependencies**: Regularly update dependencies to get security patches
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+</div>
