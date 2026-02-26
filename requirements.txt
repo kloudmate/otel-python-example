@@ -6,3 +6,4 @@ opentelemetry-exporter-otlp==1.22.0
 opentelemetry-distro==0.43b0
 opentelemetry-instrumentation==0.43b0
 pytest==7.4.3
+setuptools<72.0.0
