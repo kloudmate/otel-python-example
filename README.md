@@ -254,6 +254,13 @@ docker run -p 5000:5000 \
 └─────────────────────┘
 ```
 
+## Security Considerations
+
+- **Flask Debug Mode**: By default, debug mode is disabled for security. Only enable it in development by setting `FLASK_DEBUG=true`
+- **Authorization Headers**: Use strong tokens for the `OTEL_EXPORTER_OTLP_HEADERS` configuration
+- **Production Deployment**: Use a production WSGI server like Gunicorn or uWSGI instead of Flask's built-in development server
+- **Dependencies**: Regularly update dependencies to get security patches
+
 ## License
 
 MIT License - see LICENSE file for details
