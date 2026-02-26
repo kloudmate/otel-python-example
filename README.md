@@ -170,55 +170,22 @@ To view the traces, you need an OpenTelemetry collector and a backend like:
 - Datadog
 - New Relic
 
-### Example: Using Jaeger
+### Example: Using a Local OTLP Collector
 
-1. Run Jaeger all-in-one:
-```bash
-docker run -d --name jaeger \
-  -e COLLECTOR_OTLP_ENABLED=true \
-  -p 16686:16686 \
-  -p 4318:4318 \
-  jaegertracing/all-in-one:latest
-```
+1. Set up your preferred OTLP-compatible collector (e.g., Jaeger, OTEL Collector)
+   - For Jaeger, follow the [Jaeger Getting Started](https://www.jaegertracing.io/docs/latest/getting-started/) guide
+   - Ensure it's configured to accept OTLP data on port 4318 (HTTP) or 4317 (gRPC)
 
 2. Configure the application:
 ```bash
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 export OTEL_SERVICE_NAME=otel-python-example
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer your-token"
 ```
 
 3. Run the application and make some requests
 
-4. View traces at http://localhost:16686
-
-## Docker Support
-
-You can also run this application in Docker. Create a `Dockerfile`:
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY app.py .
-
-EXPOSE 5000
-
-CMD ["opentelemetry-instrument", "--traces_exporter", "otlp", "--metrics_exporter", "none", "--logs_exporter", "none", "python", "app.py"]
-```
-
-Build and run:
-```bash
-docker build -t otel-python-example .
-docker run -p 5000:5000 \
-  -e OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4318 \
-  -e OTEL_SERVICE_NAME=otel-python-example \
-  -e OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer your-token" \
-  otel-python-example
-```
+4. View traces in your collector's UI (e.g., Jaeger UI at http://localhost:16686)
 
 ## Architecture
 
